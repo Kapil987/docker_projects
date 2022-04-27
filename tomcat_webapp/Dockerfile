@@ -2,7 +2,9 @@
 FROM tomcat:8.0
 LABEL maintainer="Kapil"
 
-# uid and gid to match host user also has the same, to avoid mismatch incase of volume mount, ARG can be given at building you image using --> sudo docker build -t user_tom --build-arg USER_ID=$(id -u ${USER}) --build-arg GROUP_ID=$(id -u ${GROUP_ID}) --build-arg USER_NAME=$(id -nu ${USER_ID}) .
+# uid and gid are used here to  match host user , to avoid mismatch incase of volume mount, 
+# ARG can be given at building you image using --> 
+# sudo docker build -t user_tom --build-arg USER_ID=$(id -u ${USER}) --build-arg GROUP_ID=$(id -u ${GROUP_ID}) --build-arg USER_NAME=$(id -nu ${USER_ID}) .
 ARG USER_ID
 ARG GROUP_ID
 ARG USER_NAME
@@ -13,6 +15,7 @@ COPY ./demo.war /usr/local/tomcat/webapps/
 COPY ./index.html /usr/local/tomcat/webapps/ROOT/
 
 # Not a good practice but you can comment/uncomment giving root password to check/demonstrate --security-opt no-new-privileges option working
+# if you pick a uid+gid combination that doesn’t exist in the base image, the runtime user will only have access to files that everyone has access to
 
 RUN echo "root:root" | chpasswd &&\ 
 groupadd -g ${GROUP_ID} ${USER_NAME} &&\

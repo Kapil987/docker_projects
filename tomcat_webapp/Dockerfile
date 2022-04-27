@@ -9,7 +9,15 @@ ARG USER_ID
 ARG GROUP_ID
 ARG USER_NAME
 
-RUN rm -rf /usr/local/tomcat/webapps/*
+RUN rm -rf /usr/local/tomcat/webapps/* && rm -rf /usr/local/tomcat/logs &&\
+# if the below mkdir command is ran and then tempfs is created on the same, 
+# then you will get permission denied error and also ownership will be given to root, 
+# workaround for this problem is to use uid in tmpfs  --tmpfs=/usr/local/tomcat/logs:uid=1000:1000 at runtime
+mkdir -p /usr/local/tomcat/logs 
+
+# command: docker run --read-only -d --rm --name CONTAINER_NAME -p 8081:8080\ 
+# --tmpfs /usr/local/tomcat/logs:uid=1000,gid=1000,size=4m,mode=1770 IMAGE_NAME
+
 
 COPY ./demo.war /usr/local/tomcat/webapps/
 COPY ./index.html /usr/local/tomcat/webapps/ROOT/
@@ -17,13 +25,18 @@ COPY ./index.html /usr/local/tomcat/webapps/ROOT/
 # Not a good practice but you can comment/uncomment giving root password to check/demonstrate --security-opt no-new-privileges option working
 # if you pick a uid+gid combination that doesn’t exist in the base image, the runtime user will only have access to files that everyone has access to
 
-RUN echo "root:root" | chpasswd &&\ 
-groupadd -g ${GROUP_ID} ${USER_NAME} &&\
+# RUN echo "root:root" | chpasswd &&\ 
+RUN groupadd -g ${GROUP_ID} ${USER_NAME} &&\
 useradd -l -u ${USER_ID} ${USER_NAME} -g ${GROUP_ID} &&\
-# RUN chsh --shell /usr/sbin/nologin root &&\
-chown --changes --silent --no-dereference --recursive ${USER_ID}:${GROUP_ID} /usr/local/tomcat/webapps
+chsh --shell /usr/sbin/nologin root
+RUN chown --changes --silent --no-dereference --recursive ${USER_ID}:${GROUP_ID} /usr/local/tomcat/webapps \
+/usr/local/tomcat/logs \
+/usr/local/tomcat/work
 
-# optional you may choose this at runtime
+# at this point even though USER is created but this will still create folder with root ownership
+# mkdir -p /usr/local/tomcat/testing
+
+# optional you may choose this at runtime, even with --read-only USER is able to write into this folder
 VOLUME /usr/local/tomcat/webapps 
 
 # default user will used for login

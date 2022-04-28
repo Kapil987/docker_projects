@@ -9,14 +9,14 @@ ARG USER_ID
 ARG GROUP_ID
 ARG USER_NAME
 
-RUN rm -rf /usr/local/tomcat/webapps/* && rm -rf /usr/local/tomcat/logs &&\
-# if the below mkdir command is ran and then tempfs is created on the same, 
-# then you will get permission denied error and also ownership will be given to root, 
+RUN rm -rf /usr/local/tomcat/webapps/*
+# if the below mkdir command is ran the ownership is granted to root unless you chown it and then if tempfs is created on the same,
+# then you will get permission denied error as root has the ownership, 
 # workaround for this problem is to use uid in tmpfs  --tmpfs=/usr/local/tomcat/logs:uid=1000:1000 at runtime
-mkdir -p /usr/local/tomcat/logs 
+# mkdir -p /usr/local/tomcat/logs 
 
-# command: docker run --read-only -d --rm --name CONTAINER_NAME -p 8081:8080\ 
-# --tmpfs /usr/local/tomcat/logs:uid=1000,gid=1000,size=4m,mode=1770 IMAGE_NAME
+# you may plan to use exec in place of noexec to provide execution permission in the tempfs
+# docker run --read-only -d --rm --name test_tom -p 8081:8080 --tmpfs /usr/local/tomcat/logs:uid=1000,gid=1000,rw,noexec,nosuid,nodev,size=4m user_tom
 
 
 COPY ./demo.war /usr/local/tomcat/webapps/
@@ -37,7 +37,8 @@ RUN chown --changes --silent --no-dereference --recursive ${USER_ID}:${GROUP_ID}
 # mkdir -p /usr/local/tomcat/testing
 
 # optional you may choose this at runtime, even with --read-only USER is able to write into this folder
-VOLUME /usr/local/tomcat/webapps 
+# if the below is commented and --read-only flag is used then it the dir becomes read only (no modification allowed)
+# VOLUME /usr/local/tomcat/webapps 
 
 # default user will used for login
 USER ${USER_NAME}
